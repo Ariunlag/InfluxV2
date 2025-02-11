@@ -102,25 +102,41 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     // Listen for real-time data updates
-    socket.on("dataUpdate", function (data) {
-        console.log("Received data:", data);
+    socket.onAny((event, data) => {
+        if (event.startsWith("dataUpdate_")) {
+            console.log(`Received event ${event}:`, data);
+            updateChart(data, event.replace("dataUpdate_", ""));
+        }
+    });
 
         // Ensure the measurement is in the dataset
-        let dataset = influxChart.data.datasets.find((d) => d.label === data.measurement);
-        if (!dataset) {
-            dataset = {
-                label: data.measurement,
-                data: [],
-                borderColor: getRandomColor(),
-                fill: false
-            };
-            influxChart.data.datasets.push(dataset);
+        function updateChart(data, sectionId) {
+            console.log("Updating chart with data:", data, "Section:", sectionId);
+
+            let dataset = influxChart.data.datasets.find((d) => d.label === data.measurement);
+    
+            if (!dataset) {
+                dataset = {
+                    label: data.measurement,
+                    data: [],
+                    borderColor: getRandomColor(),
+                    fill: false,
+                    spanGaps: false // ✅ Prevents connecting first and last points
+                };
+                influxChart.data.datasets.push(dataset);
+            }
+
+            // Ensure unique timestamps (no duplicate entries)
+            const lastTimestamp = dataset.data.length > 0 ? dataset.data[dataset.data.length - 1].x : null;
+
+            if (lastTimestamp !== data.timestamp) {
+                dataset.data.push({ x: data.timestamp, y: data.value }); // ✅ Append only latest data
+                influxChart.data.labels.push(data.timestamp);
+            }
+
+            influxChart.update();
         }
 
-        // Push new data point
-        dataset.data.push({ x: data.timestamp, y: data.value });
-        influxChart.update();
-    });
 
     // Generate random colors for chart lines
     function getRandomColor() {

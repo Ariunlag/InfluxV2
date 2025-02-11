@@ -3,6 +3,9 @@ import json
 from dotenv import load_dotenv
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.exceptions import InfluxDBError
+from influxdb_client import DeleteApi
+from datetime import datetime, timezone 
+
 
 class InfluxClient:
     def __init__(self, url, token, org, bucket):
@@ -13,6 +16,7 @@ class InfluxClient:
         self.client = None
         self.write_api = None
         self.query_api = None
+        self.delete_api = None # Initialize DeleteApi
         self.connected = False
         self.measurements =[]
         self.tags_values = {}
@@ -25,6 +29,7 @@ class InfluxClient:
                 self.client = InfluxDBClient(url=self.url, token=self.token)
                 self.write_api = self.client.write_api()
                 self.query_api = self.client.query_api()
+                self.delete_api = self.client.delete_api()
             
 
                 # self.test_write()
@@ -152,6 +157,7 @@ class InfluxClient:
         print(f"Constructed Query: {query}")
         try:
             result = self.query_api.query(query=query, org=self.org)
+            print(f"Query result at influx_connection: {result}")
         except Exception as e:
             print(f"[ERROR] Query execution failed: {e}")
             return {"error": str(e)}
@@ -168,6 +174,7 @@ class InfluxClient:
                 result_json.append(record_json)
 
         return result_json
+        print(f"Processed JSON Result: {result_json}") 
 
     def save_query(self, query_name: str, measurements: list):
         try:
@@ -199,9 +206,7 @@ class InfluxClient:
             query = f'''
                 from(bucket: "{self.bucket}")
                     |> range(start: -1y)  
-                    |> filter(fn: (r) => r._measurement == "user_queries")
-                    |> filter(fn: (r) => r._field == "query_structure") 
-                    |> keep(columns: ["_time", "query_name", "_value"])  
+                    |> filter(fn: (r) => r._measurement == "user_queries")  
             '''
             result = self.query_api.query(query, org=self.org)
 
@@ -235,45 +240,76 @@ class InfluxClient:
         # Search through the list of queries for the given query_name
         for query in user_queries:
             if query['query_name'] == query_name:
-                # Extract measurements from the query structure
-                measurements = query['query_structure']['query_structure']['measurements']
+                query_structure = query['query_structure']
+                print(f"[DEBUG] Found query_structure: {query_structure}")
+
+                # Handle different types of query_structure
+                if isinstance(query_structure, dict) and 'measurements' in query_structure.get('query_structure', {}):
+                    measurements = query_structure['query_structure']['measurements']
+                elif isinstance(query_structure, list):
+                    measurements = query_structure
+                else:
+                    print("[ERROR] Invalid query_structure format")
+                    return None
+
                 return measurements
 
         print("[ERROR] Query not found")
         return None
 
 
-    
- 
-
-    def delete_query(self, query_name: str, user_queries: list):
+    def delete_query(self, query_name: str, query_structure, user_queries: list):
         try:
             print(f"[DEBUG] Deleting query: {query_name}")
+            print(f"[DEBUG] Expected query_structure type: {type(query_structure)}, value: {query_structure}")
 
-            # Remove the query from the dictionary
-            if query_name in user_queries:
-                del user_queries[query_name]
-                print(f"[DEBUG] Query '{query_name}' deleted from user_queries")
-            else:
-                print(f"[ERROR] Query '{query_name}' not found in user_queries")
+            # Flag to track if the query was found and removed
+            found = False
+
+            # Iterate through the list and remove the matching query
+            for i, query in enumerate(user_queries):
+                print(f"[DEBUG] Current query_name: {query['query_name']}, query_structure: {query['query_structure']}")
+                if query["query_name"] == query_name and query["query_structure"] == query_structure:
+                    del user_queries[i]
+                    found = True
+                    print(f"[DEBUG] Query '{query_name}' with structure '{query_structure}' deleted from user_queries")
+                    break
+
+            if not found:
+                print(f"[ERROR] Query '{query_name}' with structure '{query_structure}' not found in user_queries")
                 return {"error": "Query not found"}
+
+            # Use DeleteApi to clear existing user_queries
+            start = "1970-01-01T00:00:00Z"
+            stop = "2025-02-11T23:59:59Z"  # Use the current date or desired end date in ISO 8601 format
+            self.delete_api.delete(start, stop, '_measurement="user_queries"', bucket=self.bucket, org=self.org)
 
             # Save the updated user_queries back to the database
             # Convert user_queries to the required format for InfluxDB
             points = []
-            for query_name, measurements in user_queries.items():
-                point = Point("user_queries").tag("query_name", query_name).field("measurements", json.dumps(measurements))
+            for query in user_queries:
+                point = Point("user_queries").tag("query_name", query["query_name"]).field("query_structure", json.dumps(query["query_structure"]))
                 points.append(point)
-            
+
             # Write the updated data to InfluxDB
             self.write_api.write(bucket=self.bucket, org=self.org, record=points)
-            
+
             print(f"[DEBUG] Updated user_queries saved successfully!")
             return {"message": "Query deleted and updated user_queries saved successfully!"}
 
         except Exception as e:
             print(f"[ERROR] Failed to delete query: {e}")
             return {"error": str(e)}
+    
+
+
+    
+
+    
+ 
+
+
+
 
 
 

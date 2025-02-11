@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, flash, redirect, url_for, jsonify
 from mqtt_connection import MQTTClient
 from influx_connection import InfluxClient
+import query_manager
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 import os, time
@@ -16,6 +17,11 @@ mqtt_client = None
 influx_client = None
 subscribed_topics = []
 user_queries = []
+
+# Store running query threads
+running_queries = {}  # { "section_id": {"thread": thread, "stop_event": stop_event} }
+
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     global mqtt_client, influx_client, query_handler
@@ -160,25 +166,36 @@ def get_data():
 
 @app.route('/api/query', methods=['POST'])
 def query():
-    global query_config, stop_event, query_thread  #энэ бас асуудалтай
     data = request.get_json()
-    print(f"Received query @main app: {data}")
+    section_id = data.get("section_id", "default")
     measurements = data.get('measurements', [])
-    print(f"Measurements received: {measurements}")  
     time_range = data.get('timeRange', None)
     aggregation = data.get('aggregation', None)
 
-    print("Checking InfluxDB client before querying...")
-    print(f"influx_client: {influx_client}, type: {type(influx_client)}")
+    response = query_manager.start_query(section_id, measurements, time_range, aggregation, influx_client, socketio)
+    return jsonify(response)
 
-    try:
-        print("Querying InfluxDB...")
-        result = influx_client.query_data(measurements, time_range, aggregation)
-        return jsonify(result)
-    except Exception as e:
-        print(f"Error while querying InfluxDB: {e}")
+# @app.route('/api/query', methods=['POST'])
+# def query():
+#     global query_config, stop_event, query_thread  #энэ бас асуудалтай
+#     data = request.get_json()
+#     print(f"Received query @main app: {data}")
+#     measurements = data.get('measurements', [])
+#     print(f"Measurements received: {measurements}")  
+#     time_range = data.get('timeRange', None)
+#     aggregation = data.get('aggregation', None)
 
-        return jsonify({"error": str(e)}), 500
+#     print("Checking InfluxDB client before querying...")
+#     print(f"influx_client: {influx_client}, type: {type(influx_client)}")
+
+#     try:
+#         print("Querying InfluxDB...")
+#         result = influx_client.query_data(measurements, time_range, aggregation)
+#         return jsonify(result)
+#     except Exception as e:
+#         print(f"Error while querying InfluxDB: {e}")
+
+#         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/save_query', methods=['POST'])
 def save_query():
@@ -231,13 +248,30 @@ def run_query(query_name):
 @app.route("/api/query/<query_name>", methods=["DELETE"])
 def delete_query(query_name):
     try:
+        print(f"[DEBUG] Route handler called with query_name: {query_name}")
         user_queries = influx_client.fetch_queries()
-        result = influx_client.delete_query(query_name, {query['query_name']: query['query_structure']['query_structure']['measurements'] for query in user_queries})
+        print(f"[DEBUG] Fetched user_queries: {user_queries}")
+
+        # Find the query_structure for the provided query_name
+        query_structure = None
+        for query in user_queries:
+            if query['query_name'] == query_name:
+                query_structure = query['query_structure']
+                break
+
+        if not query_structure:
+            print(f"[ERROR] Query structure not found for query_name: {query_name}")
+            return jsonify({"error": "Query structure not found"}), 404
+
+        # Delete the query using the delete_query method
+        result = influx_client.delete_query(query_name, query_structure, user_queries)
         if "error" in result:
             return jsonify(result), 404
 
         # Update user_queries by refetching the queries
         user_queries = influx_client.fetch_queries()
+        print(f"[DEBUG] Updated user_queries: {user_queries}")
+
         return jsonify(result), 200
     except Exception as e:
         print(f"[ERROR] Exception in delete_query: {e}")
@@ -259,4 +293,4 @@ def logout():
 
     
 if __name__ == '__main__':
-    app.run(debug=True)
+    socketio.run(app, debug=True)

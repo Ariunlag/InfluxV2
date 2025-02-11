@@ -13,7 +13,7 @@
             <li><a href="{{ url_for('dashboard', section='home') }}">Home</a></li>
             <li><a href="{{ url_for('dashboard', section='mqtt') }}">MQTT Sub</a></li>
             <li><a href="{{ url_for('dashboard', section='influx') }}">Influx Trends</a></li>
-            <li><a href="{{ url_for('dashboard', section='class-influx') }}">Comparison</a></li>
+            <li><a href="{{ url_for('dashboard', section='class-influx') }}">User queries</a></li>
         </ul>
         <form method="POST" action="{{ url_for('logout') }}" class="logout-form">
             <button type="submit">Logout</button>
