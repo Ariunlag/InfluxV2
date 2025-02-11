@@ -1,0 +1,321 @@
+/* Dashboard Specific Styling */
+.dashboard-container {
+    display: flex;
+    flex-direction: row;
+    padding: 20px;
+    margin-top: 0;
+    gap: 20px;
+    color: var(--text-color-white);
+    height: 90%;
+    flex-grow: 1;
+}
+
+nav {
+    width: 150px;
+    background-color: var(--component-bg-color);
+    border-right: 1px solid var(--border-color);
+    padding: 20px;
+    height: 90%;
+    display: flex;
+    flex-direction: column;
+}
+
+nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+nav ul li {
+    margin: 10px 0;
+}
+
+nav ul li a {
+    text-decoration: none;
+    padding: 10px;
+    display: block;
+    color: var(--text-color-white);
+    transition: background-color 0.3s ease;
+    text-align: justify;
+}
+
+nav ul li a:hover {
+    background-color: var(--button-hover-color);
+    border-radius: 5px;
+}
+
+/* Logout Button Styling */
+nav .logout-form {
+    margin-top: auto; /* Pushes logout button to the bottom */
+    text-align: center;
+}
+
+nav .logout-form button {
+    background-color: var(--button-logout-bg-color);
+    color: var(--text-color-white);
+    padding: 12px 20px;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+    border-radius: 5px;
+}
+
+nav .logout-form button:hover {
+    background-color: var(--button-logout-hover-bg-color);
+}
+
+/* Content Styling */
+.dashboard-content {
+    flex-grow: 1;
+    padding: 20px;
+    background-color: var(--component-bg-color);
+    margin-left: 20px;
+    height: 90%;
+}
+
+.dashboard-content h1 {
+    color: var(--text-color-yellow);
+    margin-bottom: 20px;
+}
+
+.dashboard-content p {
+    text-align: justify;
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+}
+
+.dashboard-content .status-info {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: var(--component-bg-color);
+    border-radius: 5px;
+}
+
+
+
+/* Responsive Design for Dashboard */
+@media (max-width: 768px) {
+    .dashboard-container {
+        flex-direction: column;
+    }
+
+    nav {
+        width: 100%;
+        height: auto;
+    }
+
+    .dashboard-content {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .dashboard-content h1 {
+        font-size: 1.5rem;
+    }
+}
+
+
+/* MQTT Section style */
+
+.mqtt-section > .form-container{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;   
+}
+
+
+/* Styles for the response message */
+#responseMessage {
+    padding-bottom: 10px;
+    margin: 10px 0;
+    background-color: transparent;
+    color: var(--text-color);    
+    font-size: 1rem;
+    border-bottom: 0.5px solid var(--header-color); /* Optional: Change border color on focus */ 
+}
+
+
+/* MQTT Section */
+.mqtt-section {
+    padding: 5px;
+    margin: 5px 0;
+    background-color: var(--main-bg-color);
+    color: var(--text-color);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+/* MQTT Section Headers */
+.mqtt-section h3, .mqtt-section h4 {
+    color: var(--header-color);
+    margin: 0;
+}
+
+/* Form Container within MQTT Section */
+.mqtt-section > .form-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;   
+}
+
+/* Styles for the response message */
+#responseMessage {
+    padding-bottom: 10px;
+    margin: 10px 0;
+    background-color: transparent;
+    color: var(--text-color);    
+    font-size: 0.8rem;
+    border-bottom: 0.3px solid var(--border-color); 
+}
+
+/* MQTT Data Display */
+ #all-topics {
+    min-height: 100px; /* Ensure some space is reserved even when empty */
+    max-height: 120px; /* Limit the height to show 5 items, assuming each item is roughly 24px */
+    overflow-y: auto; /* Enable vertical scrolling if there are more than 5 items */
+    list-style: none;
+    padding: 0;
+    margin-bottom: 5px;
+    border-bottom: 0.3px solid var(--border-color); 
+}
+
+#mqtt-data-display{
+    height:300px; /* Limit the height to show 5 items, assuming each item is roughly 24px */
+    overflow-y: auto; /* Enable vertical scrolling if there are more than 5 items */
+    list-style: none;
+    padding: 0;
+    margin: 5px 5px;
+    border-bottom: 0.3px solid var(--border-color);
+}
+
+/* MQTT Data List Items */
+#mqtt-data-display li, #all-topics li {
+    font-size: 0.8rem; /* Make the font smaller */
+    padding: 8px 10px;
+    margin: 1px 0; /* Small space between messages */
+    background-color: transparent;
+    color: var(--text-color);
+    transition: background-color 0.3s ease;
+    text-align: justify;
+}
+
+/* Styling for the scrollbar */
+::-webkit-scrollbar {
+    width: 8px; /* Width of the scrollbar */
+}
+
+::-webkit-scrollbar-track {
+    background: var(--main-bg-color); /* Background of the scrollbar track */
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--header-color); /* Color of the scrollbar thumb */
+    border-radius: 10px; /* Roundness of the scrollbar thumb */
+    border: 2px solid var(--main-bg-color); /* Padding around the scrollbar thumb */
+}
+
+/* For Firefox */
+* {
+    scrollbar-width: thin; /* Firefox: Makes the scrollbar thinner */
+    scrollbar-color: var(--header-color) var(--main-bg-color); /* Firefox: Thumb and track colors */
+}
+
+
+
+
+/* For influx section style*/
+.influx-section {
+    font-family: Arial, sans-serif;
+    font-size: 14px; /* Small and neat font size */
+    color: #000; /* Default text color */
+    padding: 10px; /* Padding around the section */
+    border-radius: 5px; /* Rounded corners */
+    max-width: 600px; /* Maximum width for the section */
+    margin: 0 auto; /* Center align the section */
+}
+
+h3 {
+    font-size: 16px; /* Slightly larger font size for headings */
+    margin-bottom: 10px; /* Space below the headings */
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Space between form elements */
+}
+
+label {
+    font-size: 14px; /* Small and neat font size */
+    margin-bottom: 5px; /* Space below labels */
+}
+
+select, input[type="radio"], button {
+    font-size: 14px; /* Small and neat font size */
+    margin-right: 10px; /* Space between radio buttons and labels */
+}
+
+#selection-container {
+    display: flex;
+    gap: 20px; /* Space between time range and aggregation sections */
+    align-items: flex-start;
+}
+
+#time-range-container, #aggregation-container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px; /* Space between labels and radio buttons */
+}
+
+#timeRange, #aggregation {
+    display: flex;
+    flex-wrap: wrap; /* Allow items to wrap if container is too small */
+    gap: 10px; /* Space between radio buttons and labels */
+}
+
+input[type="radio"] {
+    width: 15px; /* Smaller radio button */
+    height: 15px; /* Smaller radio button */
+}
+
+label[for^="timeRange"], label[for^="aggregation"] {
+    font-size: 14px; /* Small and neat font size */
+    margin-left: 5px; /* Space between radio button and label text */
+    color: var(--text-color-white);
+}
+
+
+
+/* Class influx Section */
+#measurement-form, #selected-measurements{ /* Target the container */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* Keep the left alignment */
+}
+#measurement-form button,
+#selected-measurements button {
+    /* Remove explicit height/width if you want them to size based on content */
+    padding: 8px 16px;
+    box-sizing: border-box;
+}
+
+/* Option 1: Make buttons stretch to container width */
+#measurement-form button, #selected-measurements button {
+  align-self: stretch; /* or width: 100% */
+}
+
+#save-query-form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#query-list {
+    list-style: none;
+    padding: 0;
+}

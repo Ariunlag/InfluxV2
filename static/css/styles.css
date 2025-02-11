@@ -1,0 +1,212 @@
+:root {
+    --main-bg-color: #111111;
+    --general-bg-color: #222222;
+    --component-bg-color: #333333;
+    --text-color-white: #ffffff;
+    --text-color-yellow: #ffcc00;
+    --button-color: #ffcc00;
+    --button-hover-color: #ffcc66;
+    --border-color: #ffcc00; 
+}
+
+body {
+    display: block;
+    background-color: var(--main-bg-color);
+    color: var(--text-color-white);
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 0;
+    padding: 0;
+    flex-direction: column;
+    cursor: default;
+
+}
+
+header, footer {
+    width: 100%;
+    padding: 0px 0px;
+    background-color: var(--main-bg-color);
+    color: var(--text-color-yellow);
+    text-align: center;
+    font-size: 0.8rem;
+}
+
+/* Ensuring footer doesn't overlap content */
+footer {
+    position: fixed;
+    bottom: 0;
+    z-index: 1000;
+    padding: 10px 0;
+}
+
+main {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    height: calc(100vh - 60px);
+    padding: 0px;
+    background-color: transparent;
+    border-radius: 10px;
+    text-align: center;
+    color: var(--text-color-yellow);
+    max-width: 1000px;
+    margin: 0px auto; /* Adjusted margin for footer space */
+    /* box-shadow: 0 0 10px rgba(255, 204, 0, 0.2); */
+}
+
+
+
+/* Headings */
+h3 {
+    color: var(--text-color-yellow);
+    margin-bottom: 10px;
+}
+
+/* Form Styling */
+.form-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 20px;
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.form-section {
+    width: 40%;
+    padding: 15px;
+    margin: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background-color: transparent;
+}
+
+/* Labels */
+label {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--text-color-white);
+}
+
+/* Inputs */
+input, select, textarea {
+    width: 90%;
+    padding: 10px;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    background-color: transparent;
+    color: var(--text-color-white);
+    outline: none;
+    margin-bottom: 10px;
+}
+
+/* Focus state for inputs */
+input:focus, select:focus, textarea:focus {
+    background-color: var(--main-bg-color);
+    color: var(--text-color-white);
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Autofill state */
+input:-webkit-autofill, textarea:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0px 1000px var(--main-bg-color) inset;
+    -webkit-text-fill-color: var(--text-color-white);
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Disabled inputs */
+input:disabled, select:disabled, textarea:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Buttons */
+button {
+    display: block;
+    width: 95%;
+    margin: 0 auto;
+    background-color: var(--button-color);
+    color: var(--main-bg-color);
+    border: none;
+    padding: 12px;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease-in-out, transform 0.2s ease-in-out;
+}
+
+button:hover {
+    background-color: var(--button-hover-color);
+    transform: scale(1.05);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .form-container {
+        grid-template-columns: 1fr; /* One column on smaller screens */
+    }
+    
+    main {
+        padding: 15px;
+        margin: 20px auto 60px;
+    }
+    
+    button {
+        width: 100%;
+    }
+}
+
+/* <-----------------Dashboard----------------> */
+/* .dashboard-container {
+    display: flex;
+    min-height: 100vh; /* Ensure it takes full height */
+/* }
+
+nav {
+    width: 200px;
+    background-color: transparent;
+    padding: 20px;
+    flex-shrink: 0;
+    height: 100%;
+    color: var(--text-color-white);
+}
+
+nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+nav ul li {
+    margin: 0;
+}
+
+nav ul li a {
+    text-decoration: none;
+    padding: 15px;
+    display: block;
+    color: var(--text-color-white);
+}
+
+nav ul li a:hover {
+    background-color: var(--button-hover-color);
+}
+
+/* Dashboard Content Area */
+/* .dashboard-content {
+    flex-grow: 1;
+    padding: 20px;
+    background-color: transparent;
+    color: var(--text-color-yellow);
+    text-align: center;
+    border-radius: 10px ;
+    border: var(--border-color);
+}
+
+h1 {
+    font-size: 2rem;
+}
+
+p {
+    font-size: 1rem;
+} */ 

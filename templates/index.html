@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - Influx Hub{% endblock %}
+
+{% block content %}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul>
+      {% for category, message in messages %}
+        <li class="{{ category }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  {% endwith %}
+
+  
+  {% if error %}
+    <p style="color: red;">{{ error }}</p>
+  {% endif %}
+
+  <form method="POST" action="/"  >
+    <div class="form-container">
+      <div class="form-section">
+        <h3>MQTT Credentials</h3>
+        <label for="mqtt_broker">MQTT Broker:</label>
+        <input type="text" id="mqtt_broker" name="mqtt_broker" required><br>
+        <label for="mqtt_port">MQTT Port:</label>
+        <input type="number" id="mqtt_port" name="mqtt_port" required>
+      </div>
+
+      <div class="form-section">
+          <h3>InfluxDB Credentials</h3>
+          <!-- <label for="influx_url">InfluxDB URL:</label>
+          <input type="text" id="influx_url" name="influx_url required"><br> -->
+          <label for="influx_token">Token name in enviromental variable:</label>
+          <input type="text" id="influx_token" name="influx_token" required><br>
+          <label for="influx_org">Organization:</label>
+          <input type="text" id="influx_org" name="influx_org" required><br>
+          <label for="influx_bucket">Bucket:</label>
+          <input type="text" id="influx_bucket" name="influx_bucket" required><br>
+      
+      </div>
+    </div>
+    <button type="submit">Connect</button>
+</form>
+
+
+
+{% endblock %}
