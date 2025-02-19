@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Influx Hub{% endblock %}
+{% block extra_styles %}
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+
+{% block content %}
+<div class="dashboard-container">
+    <nav class="sidebar">
+        <ul>
+            <li><a href="{{ url_for('dashboard', section='home') }}">Home</a></li>
+            <li><a href="{{ url_for('dashboard', section='mqtt') }}">MQTT Subscribe</a></li>
+            <li><a href="{{ url_for('dashboard', section='influx') }}">Aggregated query</a></li>
+            <li><a href="{{ url_for('dashboard', section='class-influx') }}">Class (Multi-class) query</a></li>
+            <li><a href="{{ url_for('dashboard', section='influx-mqtt') }}">Real time dashboard</a></li>
+        </ul>
+        <form method="POST" action="{{ url_for('logout') }}" class="logout-form">
+            <button type="submit">Logout</button>
+        </form>
+    </nav>
+
+    <div class="dashboard-content">
+
+        <!-- Home Section -->
+        {% if section == 'home' %}
+        <div class="home-section">
+            <h3>Welcome to the Dashboard</h3>
+            <p>Select a section from the sidebar to view details.</p>
+            <p>Status: {{ status }}</p>
+            <p>MQTT Connection: {% if mqtt_connected %}Connected{% else %}Not Connected{% endif %}</p>
+            <p>InfluxDB Connection: {% if influx_connected %}Connected{% else %}Not Connected{% endif %}</p>
+        </div>
+        {% endif %}
+
+        <!-- MQTT Section -->
+        {% if section == 'mqtt' %}
+        <h3>MQTT Topic handler</h3>
+        <div class="mqtt-section">
+            
+            <div id="mqtt-forms">
+                <form id="subscribeForm" method="POST" action="{{ url_for('subscribe') }}">
+                    <label for="mqtt_topic_subscribe">Subscribe topic:</label>
+                    <input type="text" id="mqtt_topic_subscribe" name="mqtt_topic" required>
+                    <button type="submit">Subscribe</button>
+                </form>
+                <form id="unsubscribeForm" method="POST" action="{{ url_for('unsubscribe') }}">
+                    <label for="mqtt_topic_unsubscribe">Unsubscribe Topic:</label>
+                    <input type="text" id="mqtt_topic_unsubscribe" name="mqtt_topic" required>
+                    <button type="submit">Unsubscribe</button>
+                </form>
+            </div>
+           
+           
+            <div id="subscribed-topics">
+                <h4>Subscribed Topics</h4>
+                <li class="subscribedTopics">No subscriptions yet</li>
+            </div>
+            
+            <div id="mqtt-data">
+                <h4>Received MQTT Messages</h4>
+                <ul id="mqtt-data-display"></ul>
+            </div>
+            
+        </div>
+        {% endif %}
+
+        <!-- InfluxDB Section -->
+        {% if section == 'influx' %}
+        <div class="influx-section">
+            <h3>Influx Data</h3>
+            <form id="queryForm">
+                <label>Select Measurement</label>
+                <select id="measurement"></select> 
+                     
+                <div id="selection-container">
+                    <div id="time-range-container">
+                        <label>Select Time Range</label>
+                        <div id="timeRange">
+                            <input type="radio" id="timeRange_lastHour" name="timeRange" value="lastHour" checked>
+                            <label for="timeRange_lastHour">Last Hour</label>
+                            <input type="radio" id="timeRange_last12Hours" name="timeRange" value="last12Hours">
+                            <label for="timeRange_last12Hours">Last 12 Hours</label>
+                            <input type="radio" id="timeRange_last24Hours" name="timeRange" value="last24Hours">
+                            <label for="timeRange_last24Hours">Last 24 Hours</label>
+                        </div>
+                    </div>
+                    
+                    <div id="aggregation-container">
+                        <label>Select Aggregation Method</label>
+                        <div id="aggregation">
+                            <input type="radio" id="aggregation_max" name="aggregation" value="max" checked>
+                            <label for="aggregation_max">Max</label>
+                            <input type="radio" id="aggregation_min" name="aggregation" value="min">
+                            <label for="aggregation_min">Min</label>
+                            <input type="radio" id="aggregation_average" name="aggregation" value="average">
+                            <label for="aggregation_average">Average</label>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit">Submit Query</button>
+            </form>
+
+            <h3>Query Result and Graph</h3>
+            <canvas id="influxChart" width="400" height="200"></canvas>
+        </div>
+        {% endif %}
+
+        <!-- InfluxDB Class Comparison Section -->
+        {% if section == 'class-influx' %}
+        <div class="class-influx-section">
+            <h3>Real-time Trends</h3>
+
+            <div id="measurement-selection">
+                <div id="measurement-form">
+                    <label>Available Measurements</label>
+                    <select id="measurements" size="5"></select> 
+                    <button type="button" id="add-measurement">Add Measurement</button>
+                </div>
+                
+                <div id="selected-measurements">
+                    <label>Selected Measurements</label>
+                    <ul id="selected-list"></ul> 
+                    <button type="button" id="remove-measurement">Remove Selected</button>
+                </div>
+            </div>
+
+            <h4>Save Query</h4>
+            <form id="save-query-form">
+                <label for="query-name">Query Name:</label>
+                <input type="text" id="query-name" name="query-name" required>
+                <button type="button" id="save-query-button">Save Query</button>
+            </form>
+
+            <h4>Saved classes</h4>
+            <ul id="query-list"></ul>
+            <div id="query-buttons">
+                <button type="button" id="run-query">Run Class</button>   
+                <button type="button" id="delete-query">Delete Class</button>
+            </div>
+            
+
+            <h3>Results</h3>
+            <canvas id="comparisonChart" width="400" height="200"></canvas>
+
+           
+        </div>
+        {% endif %}
+
+
+        <!-- Real-time Dashboard Section -->
+        {% if section == 'influx-mqtt' %}
+        <div class="influx-mqtt-section">
+            <h3>Real-time Dashboard</h3>
+
+            <h4>Saved Class Queries</h4>
+            <ul id="query-list"></ul>
+            <div id="query-buttons">
+                <button type="button" id="run-query">Run Class</button>   
+                <button type="button" id="delete-query">Delete Class</button>
+            </div>
+            
+
+            <h3>Real time chart</h3>
+            <canvas id="realTimeChart" width="400" height="200"></canvas>
+        </div>
+        
+        {% endif %}
+            
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+    {% if section == 'mqtt' %}
+    <!-- Include jQuery library -->
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="{{ url_for('static', filename='js/mqtt.js') }}"></script>
+        <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1"></script>
+        <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script> <!-- Socket.IO  --> 
+        
+    {% elif section == 'influx' %}
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/fetch/3.0.0/fetch.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
+        <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>  
+        <script src="https://cdn.socket.io/4.4.0/socket.io.min.js"></script>
+        <script src="{{ url_for('static', filename='js/influx.js') }}"></script>
+        
+        <script src="https://cdn.socket.io/4.4.0/socket.io.min.js"></script>
+        
+
+    {% elif section == 'class-influx' %}
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdn.socket.io/4.4.0/socket.io.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>  
+        <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>  
+        <script src="{{ url_for('static', filename='js/class_influx.js') }}"></script>
+
+    {% elif section == 'influx-mqtt' %}
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/fetch/3.0.0/fetch.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+        <script src="https://cdn.socket.io/4.4.0/socket.io.min.js"></script>
+        <script src="{{ url_for('static', filename='js/influx_mqtt.js') }}"></script>
+
+    {% endif %}
+
+
+{% endblock %}
