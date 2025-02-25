@@ -1,132 +1,154 @@
 let subscribedTopics = []; // Global list of subscribed topics
 console.log("MQTT script loaded");
 
+document.addEventListener("DOMContentLoaded", () => {
+    const socket = io();
+    const section_id = 'mqtt';
 
-$(document).ready(function() {
-    function updateSubscribedTopics() {
-        // Target the <li> with the class "subscribrdTopics" inside #subscribed-topics.
-        const topicDisplay = $('#subscribed-topics .subscribedTopics');
-        if (subscribedTopics.length > 0) {
-            // Display as a comma-separated list.
-            topicDisplay.text(subscribedTopics.join(", "));
-        } else {
-            topicDisplay.text("No subscriptions yet");
+    // DOM elements
+    const subscribeForm = document.getElementById('subscribeForm');
+    const unsubscribeForm = document.getElementById('unsubscribeForm');
+    const subscribedTopicsElement = document.querySelector('#subscribed-topics .subscribedTopics');
+    const mqttDataDisplay = document.getElementById('mqtt-data-display');
+
+    // Fetch subscribed topics on page load
+    async function fetchSubscribedTopics() {
+        try {
+            const response = await fetch('/get_subscribed_topics', {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+            const data = await response.json();
+            if (data.success && data.topics) {
+                subscribedTopics = data.topics;
+                updateSubscribedTopics();
+            }
+        } catch (error) {
+            console.error('Error fetching subscribed topics:', error);
         }
     }
 
-    function fetchSubscribedTopics() {
-        $.ajax({
-            type: 'GET',
-            url: '/get_subscribed_topics', // Backend should return the list of already subscribed topics
-            success: function(response) {
-                if (response.success && response.topics) {
-                    subscribedTopics = response.topics; // Load topics from backend
-                    updateSubscribedTopics(); // Update UI
-                }
-            },
-            error: function(xhr, status, error) {
-                console.log("Error fetching subscribed topics:", error);
-            }
-        });
-
+    // Update the UI with the list of subscribed topics
+    function updateSubscribedTopics() {
+        if (subscribedTopicsElement) {
+            subscribedTopicsElement.textContent = subscribedTopics.length > 0
+                ? subscribedTopics.join(', ')
+                : 'No subscriptions yet';
+        } else {
+            console.error('Element with class "subscribedTopics" not found');
+        }
     }
-    fetchSubscribedTopics();
+
+    subscribeForm.addEventListener('submit', async (e) => {
+        e.preventDefault(); 
+        const topicInput = document.getElementById('mqtt_topic_subscribe'); 
+        const topic = topicInput.value.trim();
+        console.log('Subscribing to topic:', topic);
+        if(!topic) return alert('Please enter a topic to subscribe to');
+
+        try { 
+            const response = await fetch('/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mqtt_topic: topic })
+            });
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+            const data = await response.json();
+            if (data.success) {
+                subscribedTopics.push(topic);
+                updateSubscribedTopics();
+                console.log('Subscribed successfully:', topic);
+                topicInput.value = '';
+            } else {
+                console.error('Subscription failed:', data.message);
+            }
+        } catch (error) {
+            console.error('Error subscribing to topic:', error);
+        }
+    });
+
+    unsubscribeForm.addEventListener('submit', async (e) => {
+        e.preventDefault(); 
+        const topicInput = document.getElementById('mqtt_topic_unsubscribe'); 
+        const topic = topicInput.value.trim();
+        if(!topic) return alert('Please enter a topic to unsubscribe from');
+
+        try {
+            const response = await fetch('/unsubscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mqtt_topic: topic })
+            });
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+            const data = await response.json();
+            if (data.success) {
+                const index = subscribedTopics.indexOf(topic);
+                if (index > -1) {
+                    subscribedTopics.splice(index, 1);
+                    updateSubscribedTopics();
+                    console.log('Unsubscribed successfully:', topic);
+                    topicInput.value = '';
+                }
+            } else {
+                console.error('Unsubscription failed:', data.message);
+            }
+        } catch (error) {
+            console.error('Error unsubscribing from topic:', error);
+        }
+    });
+
     
 
-    $('#subscribeForm').submit(function(event) {
-        event.preventDefault();
+    // Fetch subscribed topics when the page loads
+    fetchSubscribedTopics();
 
-        let topic = $('#mqtt_topic_subscribe').val().trim();
-        if (!topic) return; // Prevent empty subscriptions
-
-        if (!subscribedTopics.includes(topic)) {
-            $.ajax({
-                type: 'POST',
-                url: '/subscribe',
-                data: { mqtt_topic: topic },
-                success: function(response) {
-                    console.log("Subscribe response:", response);
-                    if (response.success) {
-                        subscribedTopics.push(topic);
-                        updateSubscribedTopics();
-                        $('#responseMessage').text('Subscribed successfully').css('color', 'green');
-                    } else {
-                        $('#responseMessage').text(response.message).css('color', 'red');
+    // Handle incoming MQTT data
+    socket.on('mqtt_data', (data) => {
+        console.log('Received data:', data);
+        if (mqttDataDisplay) {
+            data.data.forEach((item) => {
+                if (item) {
+                    const li = document.createElement('li');
+    
+                    // Extract timestamp and value dynamically
+                    const timestamp = item.fields.timestamp;
+                    let value;
+                    let fieldName;
+    
+    
+                    for (const field in item.fields) {
+                        if (field !== "timestamp") {
+                            value = item.fields[field];
+                            fieldName = field;
+                            break; // Exit loop after finding the value
+                        }
                     }
-                },
-                error: function(xhr, status, error) {
-                    console.log("Subscribe error:", error);
-                    $('#responseMessage').text("Subscription failed").css('color', 'red');
-                },
-                complete: function() {
-                    $('#mqtt_topic_subscribe').val(''); // Clear input field always
+    
+                    if (value !== undefined && fieldName) { // Check if value and fieldName are found
+                        li.innerHTML = `
+                            <strong>Topic:</strong> ${item.topic} &emsp;
+                            <strong>Value:</strong> ${value}&emsp;
+                            <strong>Time:</strong> ${timestamp}
+                        `;
+                        li.className = 'mqtt-item';
+                        mqttDataDisplay.insertBefore(li, mqttDataDisplay.firstChild || null);
+                    } else {
+                        console.log("No value field found in item:", item);
+                    }
                 }
             });
         } else {
-            $('#responseMessage').text("Already subscribed to this topic").css('color', 'orange');
-            $('#mqtt_topic_subscribe').val('');
+            console.error('Element with id "mqtt-data-display" not found');
         }
     });
 
-    $('#unsubscribeForm').submit(function(event) {
-        event.preventDefault();
-
-        let topic = $('#mqtt_topic_unsubscribe').val().trim();
-        if (!topic) return;
-
-        const index = subscribedTopics.indexOf(topic);
-        if (index > -1) {
-            $.ajax({
-                type: 'POST',
-                url: '/unsubscribe',
-                data: { mqtt_topic: topic },
-                success: function(response) {
-                    console.log("Unsubscribe response:", response);
-                    if (response.success) {
-                        subscribedTopics.splice(index, 1);
-                        updateSubscribedTopics();
-                        $('#responseMessage').text('Unsubscribed successfully').css('color', 'green');
-                    } else {
-                        $('#responseMessage').text(response.message).css('color', 'red');
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.log("Unsubscribe error:", error);
-                    $('#responseMessage').text("Unsubscription failed").css('color', 'red');
-                },
-                complete: function() {
-                    $('#mqtt_topic_unsubscribe').val('');
-                }
-            });
-        } else {
-            $('#responseMessage').text("Topic not found in subscription list").css('color', 'orange');
-            $('#mqtt_topic_unsubscribe').val('');
-        }
+    // Handle Socket.IO errors
+    socket.on('connect_error', (error) => {
+        console.error('Socket.IO connection error:', error);
     });
-
-    // Display incoming MQTT data
-    var socket = io();
-
-    socket.on('connect', function() {
-        console.log('Socket.IO connected');
-    });
-
-    socket.on('mqtt_data', function(msg) {
-        console.log("Received data:", msg);
-        var ul = document.getElementById('mqtt-data-display');
-
-        // No need to clear previous messages - this keeps the history
-        msg.data.forEach(function(item) {
-            if (item) {
-                var li = document.createElement('li');
-                li.innerHTML = `
-                    <strong>Topic:</strong> ${item.topic}&nbsp;&nbsp;&nbsp;
-                    <strong>Field:</strong> ${Object.entries(item.fields).map(([key, value]) => `${value}`).join(', ')}
-                    <br> `;
-                li.className = 'mqtt-item';
-                ul.insertBefore(li, ul.firstChild || null);
-            }
-        });
-    });
-
 });
+

@@ -37,38 +37,37 @@
         <!-- MQTT Section -->
         {% if section == 'mqtt' %}
         <h3>MQTT Topic handler</h3>
-        <div class="mqtt-section">
+        <div class="section" data-section="mqtt">
             
             <div id="mqtt-forms">
-                <form id="subscribeForm" method="POST" action="{{ url_for('subscribe') }}">
-                    <label for="mqtt_topic_subscribe">Subscribe topic:</label>
-                    <input type="text" id="mqtt_topic_subscribe" name="mqtt_topic" required>
-                    <button type="submit">Subscribe</button>
+                <form id="subscribeForm">
+                  <label for="mqtt_topic_subscribe">Subscribe topic:</label>
+                  <input type="text" id="mqtt_topic_subscribe" name="mqtt_topic" required>
+                  <button type="submit" id="subscribeButton">Subscribe</button>
                 </form>
-                <form id="unsubscribeForm" method="POST" action="{{ url_for('unsubscribe') }}">
-                    <label for="mqtt_topic_unsubscribe">Unsubscribe Topic:</label>
-                    <input type="text" id="mqtt_topic_unsubscribe" name="mqtt_topic" required>
-                    <button type="submit">Unsubscribe</button>
+                <form id="unsubscribeForm">
+                  <label for="mqtt_topic_unsubscribe">Unsubscribe Topic:</label>
+                  <input type="text" id="mqtt_topic_unsubscribe" name="mqtt_topic" required>
+                  <button type="submit" id="unsubscribeButton">Unsubscribe</button>
                 </form>
-            </div>
-           
-           
-            <div id="subscribed-topics">
+              </div>
+              
+              <div id="subscribed-topics">
                 <h4>Subscribed Topics</h4>
                 <li class="subscribedTopics">No subscriptions yet</li>
-            </div>
-            
-            <div id="mqtt-data">
+              </div>
+              
+              <div id="mqtt-data">
                 <h4>Received MQTT Messages</h4>
                 <ul id="mqtt-data-display"></ul>
-            </div>
+              </div>
             
         </div>
         {% endif %}
 
         <!-- InfluxDB Section -->
         {% if section == 'influx' %}
-        <div class="influx-section">
+        <div class="section" data-section="aggrigate-influx">
             <h3>Influx Data</h3>
             <form id="queryForm">
                 <label>Select Measurement</label>
@@ -104,13 +103,15 @@
             </form>
 
             <h3>Query Result and Graph</h3>
-            <canvas id="influxChart" width="400" height="200"></canvas>
+            <div id="chart-container" style="display: grid; gap: 1rem; padding: 1rem;">
+                <!-- ChartManager will dynamically add canvases here -->
+            </div>
         </div>
         {% endif %}
 
         <!-- InfluxDB Class Comparison Section -->
         {% if section == 'class-influx' %}
-        <div class="class-influx-section">
+        <div class="section" data-section="class-influx">
             <h3>Real-time Trends</h3>
 
             <div id="measurement-selection">
@@ -143,7 +144,9 @@
             
 
             <h3>Results</h3>
-            <canvas id="comparisonChart" width="400" height="200"></canvas>
+            <div id="chart-container" style="display: grid; gap: 1rem; padding: 1rem;">
+                <!-- ChartManager will dynamically add canvases here -->
+            </div>
 
            
         </div>
@@ -152,19 +155,20 @@
 
         <!-- Real-time Dashboard Section -->
         {% if section == 'influx-mqtt' %}
-        <div class="influx-mqtt-section">
+        <div class="section" data-section="influx-mqtt">
             <h3>Real-time Dashboard</h3>
 
             <h4>Saved Class Queries</h4>
             <ul id="query-list"></ul>
             <div id="query-buttons">
                 <button type="button" id="run-query">Run Class</button>   
-                <button type="button" id="delete-query">Delete Class</button>
             </div>
             
 
             <h3>Real time chart</h3>
-            <canvas id="realTimeChart" width="400" height="200"></canvas>
+            <div id="chart-container" style="display: grid; gap: 1rem; padding: 1rem;">
+                <!-- ChartManager will dynamically add canvases here -->
+            </div>
         </div>
         
         {% endif %}
@@ -174,40 +178,29 @@
 {% endblock %}
 
 {% block extra_scripts %}
+    <!-- Common dependencies for all sections -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.socket.io/4.4.0/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.4.4/luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.min.js"></script>
+    <script type="module" src="{{ url_for('static', filename='js/services/chart.js') }}"></script>
+   
+
     {% if section == 'mqtt' %}
-    <!-- Include jQuery library -->
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
         <script src="{{ url_for('static', filename='js/mqtt.js') }}"></script>
         <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1"></script>
-        <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script> <!-- Socket.IO  --> 
-        
+
     {% elif section == 'influx' %}
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/fetch/3.0.0/fetch.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
-        <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>  
-        <script src="https://cdn.socket.io/4.4.0/socket.io.min.js"></script>
-        <script src="{{ url_for('static', filename='js/influx.js') }}"></script>
-        
-        <script src="https://cdn.socket.io/4.4.0/socket.io.min.js"></script>
-        
+         <script type="module" src="{{ url_for('static', filename='js/influx.js') }}"></script>
 
     {% elif section == 'class-influx' %}
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-        <script src="https://cdn.socket.io/4.4.0/socket.io.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>  
-        <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>  
-        <script src="{{ url_for('static', filename='js/class_influx.js') }}"></script>
+        <script type="module" src="{{ url_for('static', filename='js/class_influx.js') }}"></script>
 
     {% elif section == 'influx-mqtt' %}
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/fetch/3.0.0/fetch.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-        <script src="https://cdn.socket.io/4.4.0/socket.io.min.js"></script>
-        <script src="{{ url_for('static', filename='js/influx_mqtt.js') }}"></script>
-
+        <script type="module" src="{{ url_for('static', filename='js/influx_mqtt.js') }}"></script>
     {% endif %}
-
 
 {% endblock %}

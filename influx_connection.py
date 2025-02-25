@@ -260,47 +260,51 @@ class InfluxClient:
 
     def delete_query(self, query_name: str, query_structure, user_queries: list):
         try:
-            print(f"[DEBUG] Deleting query: {query_name}")
-            print(f"[DEBUG] Expected query_structure type: {type(query_structure)}, value: {query_structure}")
+            print(f"[influx connection] Deleting query: {query_name}")
 
-            # Flag to track if the query was found and removed
-            found = False
-
-            # Iterate through the list and remove the matching query
-            for i, query in enumerate(user_queries):
-                print(f"[DEBUG] Current query_name: {query['query_name']}, query_structure: {query['query_structure']}")
-                if query["query_name"] == query_name and query["query_structure"] == query_structure:
-                    del user_queries[i]
-                    found = True
-                    print(f"[DEBUG] Query '{query_name}' with structure '{query_structure}' deleted from user_queries")
-                    break
-
-            if not found:
-                print(f"[ERROR] Query '{query_name}' with structure '{query_structure}' not found in user_queries")
+            # Remove ALL instances of the query from the list
+            initial_count = len(user_queries)
+            user_queries = [
+                q for q in user_queries
+                if not (q["query_name"] == query_name and q["query_structure"] == query_structure)
+            ]
+            if len(user_queries) == initial_count:
+                print(f"[ERROR] Query '{query_name}' not found")
                 return {"error": "Query not found"}
 
-            # Use DeleteApi to clear existing user_queries
+            # Delete existing data from InfluxDB
             start = "1970-01-01T00:00:00Z"
-            stop = "2025-02-11T23:59:59Z"  # Use the current date or desired end date in ISO 8601 format
-            self.delete_api.delete(start, stop, '_measurement="user_queries"', bucket=self.bucket, org=self.org)
+            stop = "2200-01-01T00:00:00Z"
+            try:
+                self.delete_api.delete(
+                    start=start,
+                    stop=stop,
+                    predicate='_measurement="user_queries"',
+                    bucket=self.bucket,
+                    org=self.org
+                )
+                print("[influx connection] Old data deleted from InfluxDB")
+            except Exception as delete_error:
+                print(f"[ERROR] Delete operation failed: {delete_error}")
+                return {"error": "Failed to clear old data"}
 
-            # Save the updated user_queries back to the database
-            # Convert user_queries to the required format for InfluxDB
+            # Prepare updated data for InfluxDB
             points = []
             for query in user_queries:
-                point = Point("user_queries").tag("query_name", query["query_name"]).field("query_structure", json.dumps(query["query_structure"]))
+                point = Point("user_queries") \
+                    .tag("query_name", query["query_name"]) \
+                    .field("query_structure", json.dumps(query["query_structure"]))
                 points.append(point)
 
-            # Write the updated data to InfluxDB
+            # Write new data
             self.write_api.write(bucket=self.bucket, org=self.org, record=points)
-
-            print(f"[DEBUG] Updated user_queries saved successfully!")
-            return {"message": "Query deleted and updated user_queries saved successfully!"}
+            print(f"[influx connection] Saved {len(points)} queries")
+            return {"message": "Query deleted successfully"}
 
         except Exception as e:
-            print(f"[ERROR] Failed to delete query: {e}")
+            print(f"[ERROR] Critical failure: {e}")
             return {"error": str(e)}
-    
+        
 
 
     

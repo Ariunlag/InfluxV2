@@ -3,6 +3,7 @@ import socket
 import json
 import threading
 import time
+from datetime import datetime
 
 class MQTTClient:
     def __init__(self, broker, port, influx_client=None, bucket=None, socketio=None):
@@ -58,52 +59,48 @@ class MQTTClient:
             print(f"Unsubscribed from topic '{topic}'")
             print(f"Connected to topic '{self.subscribed_topics}'")
 
+
+
     def on_message(self, client, userdata, msg):
-    # Decode the payload
         payload = msg.payload.decode()
-        # print(f"Received '{payload}' from '{msg.topic}'")
-        
+
         try:
-            # Parse the JSON payload once
             data = json.loads(payload)
 
-            # Append data to self.data list with threading lock for safety
-            with self.lock:
-                self.data.append({
-                    "topic": msg.topic,
+            fields = data.get("fields", {})
+            tags = data.get("tags", {})
+            timestamp_unix = fields.get("timestamp")
 
-                    "fields": {
-                    "timestamp": data.get("fields", {}).get("timestamp", time.strftime("%Y-%m-%dT%H:%M:%SZ")),  
-                    "value": data.get("fields", {}).get("value")
-                },
-                    "tags": data.get("tags", {})
-                })
-
-            # Emit the message to the frontend for real-time display if socketio is set
-            if self.socketio:
-                self.socketio.emit('mqtt_data', {'data': self.data})
-                # print emitted data for debugging
-                # print("Emitted data:", self.data)
-
-            # Debug: Print the state of influx_client and bucket 
-            if self.influx_client and self.bucket: 
-                fields = data.get("fields", {})
-                tags = data.get("tags", {})
-                timestamp = data.get("timestamp", None)
-                measurement = msg.topic       
-
-                # Call write_data from InfluxClient to save data
-                self.influx_client.write_data(
-                    bucket=self.bucket, 
-                    measurement=measurement, 
-                    tags=tags, 
-                    fields=fields
-                    )
-                # print(f"Data saved to InfluxDB: Measurement='{measurement}', Tags={tags}, Fields={fields}")
-
+            if timestamp_unix is not None:
+                timestamp_datetime = datetime.fromtimestamp(timestamp_unix)
+                timestamp_str = timestamp_datetime.isoformat()
             else:
-                print("InfluxDB client is not initialized or missing 'bucket'.")
-        
+                timestamp_str = time.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+            # Dynamically get the field name and value
+            for field_name, field_value in fields.items(): # Iterate over the fields
+                if field_name != "timestamp": 
+                    new_data_point = {
+                        "topic": msg.topic,
+                        "fields": {
+                            "timestamp": timestamp_str,
+                            field_name: field_value # Use the dynamic field name
+                        },
+                        "tags": tags
+                    }
+
+                    if self.socketio:
+                        self.socketio.emit('mqtt_data', {'data': [new_data_point]})
+
+                    if self.influx_client and self.bucket:
+                        measurement = msg.topic
+                        self.influx_client.write_data(
+                            bucket=self.bucket,
+                            measurement=measurement,
+                            tags=tags,
+                            fields={ field_name: field_value } # Use the dynamic field name for InfluxDB
+                        )
+
         except json.JSONDecodeError:
             print(f"Failed to decode JSON: {payload}")
         except Exception as e:
@@ -117,8 +114,11 @@ class MQTTClient:
         
 
     def disconnect(self):
+        
+        for topic in self.subscribed_topics:
+            self.client.unsubscribe(topic)
+        self.subscribed_topics.clear()
         self.client.disconnect()
         self.connected = False
-        self.subscribed_topics.clear()
         print("Disconnected from MQTT broker")
         self.client.loop_stop()

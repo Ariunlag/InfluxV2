@@ -1,3 +1,4 @@
+import { ChartManager } from './services/chart.js';
 console.log("Influx MQTT script loaded");
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -8,27 +9,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // DOM Elements
     const runQueryButton = document.getElementById("run-query");
-    const deleteQueryButton = document.getElementById("delete-query");
     const queryList = document.getElementById("query-list");
-    const chartCanvas = document.getElementById("realTimeChart");
+    
 
-    // Initialize Chart
-    let realTimeChart = new Chart(chartCanvas, {
-        type: "line",
-        data: { labels: [], datasets: [] },
-        options: {
-            responsive: true,
-            scales: {
-                x: { type: "time", time: { unit: "minute" }, title: { display: true, text: "Time" } },
-                y: { beginAtZero: true, title: { display: true, text: "Value" } }
-            }
-        }
-    });
+    // Chart Manager initialization
+    const chartManager = new ChartManager("chart-container");
+
 
     // Fetch saved queries from server
     async function fetchSavedQueries() {
         try {
-            const response = await fetch("/api/user_queries", { method: "GET", headers: { "Content-Type": "application/json" } });
+            const response = await fetch("/api/user_queries", { 
+                method: "GET", 
+                headers: { "Content-Type": "application/json" } 
+            });
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const data = await response.json();
             data.queries ? populateSavedQueries(data.queries) : console.error("No queries found.");
@@ -61,13 +55,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Run Query (Fetch Historical Data)
     runQueryButton.addEventListener("click", async () => {
-        
+        activeMeasurements.clear();
         const selectedOption = queryList.querySelector("li.selected");
         if (!selectedOption) return alert("Please select a query to run.");
 
         const queryName = selectedOption.dataset.value;
-        resetChartData(); 
-        
+        chartManager.reset();
         
         try {
             const response = await fetch(`/api/realtime/${queryName}`, {
@@ -91,132 +84,53 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Process Historical Data
     function processHistoricalData(dataArray) {
-        if (!Array.isArray(dataArray)) return;
-        activeMeasurements.clear();
-        dataArray.forEach(data => {
-            if (data.measurement) { // Ensure measurement property exists
-                activeMeasurements.add(data.measurement);
-            }
-        });
-        
-        console.log("Active Measurements @ historical data:", Array.from(activeMeasurements));
-        // Sort by timestamp
+        console.log("[real time influx mqtt.js] Processing data:", dataArray);
+
         dataArray.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-        dataArray.forEach(data => processChartData(data));
-
-        updateChartVisuals();
+        
+        dataArray.forEach(data => {
+            if (!data.measurement) return;
+            
+            activeMeasurements.add(data.measurement);
+            const dataPoint = {
+                x: new Date(data.timestamp),
+                y: data.value
+            };
+            chartManager.updateOrCreateChart(data.measurement, dataPoint);
+        });
     }
 
-    // Delete Query
-    deleteQueryButton.addEventListener("click", async () => {
-        const selectedOption = queryList.querySelector("li.selected");
-        if (!selectedOption) return alert("Please select a query to delete.");
-
-        try {
-            const response = await fetch(`/api/query/${selectedOption.dataset.value}`, { method: "DELETE" });
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-            alert("Query deleted successfully!");
-            await fetchSavedQueries();
-        } catch (error) {
-            handleError("Error deleting query", error);
-        }
-    });
-
-    // Process real-time MQTT Data (only after historical data loads)
-    console.log("MQTT Enabled:", mqttEnabled);
-
+    // Modified Socket Handler
     socket.on("mqtt_data", (payload) => {
-        if (!mqttEnabled) return; 
+        if (!mqttEnabled) return;
         
-        console.log("Active Measurements Set:", Array.from(activeMeasurements));
-
         payload.data.forEach(item => {
-            // console.log("Checking MQTT Data:", item.topic, "in", Array.from(activeMeasurements));
-
-            if (activeMeasurements.has(item.topic)) {  // Only process relevant measurements
-                console.log(`✅ MATCH: Processing data for ${item.topic}`);
-
-                processChartData({
-                    measurement: item.topic,
-                    timestamp: new Date(item.fields.timestamp || Date.now()), // Ensure timestamp
-                    value: item.fields.value
-                });
+            if (activeMeasurements.has(item.topic)) {
+                // Extract the timestamp
+                const timestamp = item.fields.timestamp;
+                console.log("MQTT Timestamp (raw):", item.fields.timestamp); // e.g., "2025-02-24T15:37:24Z"
+                // const utcTimestamp = new Date(item.fields.timestamp).getTime();
+                // console.log("MQTT Timestamp (converted):", utcTimestamp); // Correct UTC milliseconds
+                
+            // Extract the second dynamic field (excluding 'timestamp')
+            let value;
+            for (let key in item.fields) {
+                if (key !== 'timestamp') {
+                    value = item.fields[key];
+                    break; // Stop after finding the first non-timestamp field
+                }
+            }
+            
+            const dataPoint = {
+                x: timestamp,
+                y: value
+            };
+            
+            chartManager.updateOrCreateChart(item.topic, dataPoint);
+            console.log(`Chart updated data ${item.topic}`, dataPoint);
             }
         });
-
-        updateChartVisuals();
     });
-
-    // Reset Chart Data
-    function resetChartData() {
-        activeMeasurements.clear();;
-        realTimeChart.data.datasets = [];
-        realTimeChart.data.labels = [];
-
-        realTimeChart.update({ duration: 0 });
-        console.log("Chart reset complete.");
-    }
-
-    function processChartData(data) {
-        console.log("Received data for processing:", data);
-
-        if (!data.measurement || data.value === undefined || !data.timestamp) {
-            console.error(" Invalid data format:", data);
-            return;
-        }
-
-        let dataset = realTimeChart.data.datasets.find(d => d.label === data.measurement);
-        if (!dataset) {
-            dataset = {
-                label: data.measurement,
-                data: [],
-                borderColor: getRandomColor(),
-                fill: false,
-                lineTension: 0.1,
-                pointRadius: 2
-            };
-            realTimeChart.data.datasets.push(dataset);
-        }
-
-        const timestamp = new Date(data.timestamp);
-        console.log("Processing data:", { measurement: data.measurement, x: timestamp, y: data.value });
-
-        if (isNaN(timestamp.getTime())) {
-            console.error(" Invalid timestamp:", data.timestamp);
-            return;
-        }
-
-        const index = binarySearch(dataset.data, timestamp);
-        if (index < 0) {
-            dataset.data.splice(~index, 0, { x: timestamp, y: data.value });
-            if (dataset.data.length > 200) dataset.data.splice(0, dataset.data.length - 200);
-        }
-    }
-
-    function binarySearch(arr, timestamp) {
-        let low = 0, high = arr.length;
-        while (low < high) {
-            const mid = (low + high) >>> 1;
-            arr[mid].x < timestamp ? (low = mid + 1) : (high = mid);
-        }
-        return arr[low]?.x === timestamp ? low : ~low;
-    }
-
-    function updateChartVisuals() {
-        realTimeChart.options.scales.x.time.unit = "minute";
-        realTimeChart.update({ duration: 0, lazy: true, preservation: { x: ["userPan", "userZoom"] } });
-    }
-
-    function getRandomColor() {
-        return `rgb(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)})`;
-    }
-
-    function handleError(message, error) {
-        console.error(`${message}:`, error);
-        alert(message);
-    }
 
     fetchSavedQueries();
 });

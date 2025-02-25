@@ -139,7 +139,7 @@ nav .logout-form button:hover {
 #mqtt-forms,
 #subscribed-topics,
 #mqtt-data {
-    padding: 20px;
+    padding: 10px;
     background-color: transparent;
     border-radius: 10px;
     flex: 1; /* Ensures all sections have equal width */
@@ -324,3 +324,10 @@ label[for^="timeRange"], label[for^="aggregation"] {
   gap: 10px;
   margin-top: 10px;
 }
+
+#chart-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+  }

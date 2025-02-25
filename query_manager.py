@@ -33,7 +33,7 @@ def stream_query_data(section_id, measurements, time_range, aggregation, stop_ev
             while (time.time() - start_time) < 5 and not stop_event.is_set():
                 time.sleep(0.1)
                 
-            time.sleep(5)  # Update every 5 seconds
+            time.sleep(30)  # Update every 5 seconds
     except Exception as e:
         print(f"[ERROR] Streaming failed for {section_id}: {e}")
 

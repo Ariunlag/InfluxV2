@@ -131,7 +131,7 @@ def dashboard(section):
 
 @app.route('/subscribe', methods=['POST'])
 def subscribe():
-    topic = request.form.get('mqtt_topic')
+    topic = request.json.get('mqtt_topic')
     if mqtt_client and mqtt_client.is_connected():
         if topic not in subscribed_topics:
             mqtt_client.subscribe_topic(topic)
@@ -143,7 +143,7 @@ def subscribe():
 
 @app.route('/unsubscribe', methods=['POST'])
 def unsubscribe():
-    topic = request.form.get('mqtt_topic')
+    topic = request.json.get('mqtt_topic')
     if mqtt_client and mqtt_client.is_connected():
         if topic in subscribed_topics:
             mqtt_client.unsubscribe_topic(topic)
@@ -280,9 +280,9 @@ def run_realtime(query_name):
 @app.route("/api/query/<query_name>", methods=["DELETE"])
 def delete_query(query_name):
     try:
-        print(f"[DEBUG] Route handler called with query_name: {query_name}")
+        print(f"[app] Route handler called with query_name: {query_name}")
         user_queries = influx_client.fetch_queries()
-        print(f"[DEBUG] Fetched user_queries: {user_queries}")
+        print(f"[app] Fetched user_queries: {user_queries}")
 
         # Find the query_structure for the provided query_name
         query_structure = None
@@ -290,6 +290,7 @@ def delete_query(query_name):
             if query['query_name'] == query_name:
                 query_structure = query['query_structure']
                 break
+        print(f"[app] Found query_structure: {query_structure}")
 
         if not query_structure:
             print(f"[ERROR] Query structure not found for query_name: {query_name}")

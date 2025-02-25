@@ -1,3 +1,4 @@
+import {ChartManager } from './services/chart.js';
 console.log("Class influx script loaded");
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -14,29 +15,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const addMeasurementButton = document.getElementById("add-measurement");
     const removeMeasurementButton = document.getElementById("remove-measurement");
     const saveQueryButton = document.getElementById("save-query-button");
-    const chartCanvas = document.getElementById("comparisonChart");
     const runQueryButton = document.getElementById('run-query');
     const deleteQueryButton = document.getElementById('delete-query');
 
-    // Chart initialization
-    let comparisonChart = new Chart(chartCanvas, {
-        type: "line",
-        data: {
-            labels: [], // X-axis: timestamps
-            datasets: []
-        },
-        options: {
-            responsive: true,
-            scales: {
-                x: { 
-                    type: "time", 
-                    time: { unit: "minute" },  // Ensure 'time' options are defined
-                    title: { display: true, text: "Time" }
-                },
-                y: { beginAtZero: true, title: { display: true, text: "Value" } }
-            }
-        }          
-    });
+    // Chart Manager initialization
+    const chartManager = new ChartManager("chart-container");
     
 
     // Fetch data on page load
@@ -190,7 +173,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function runQuery() {
         if (!selectedMeasurements.length) return;
-        resetChartData();
+        chartManager.reset();
+        
         console.log("Sending query to /api/query with:", {
             measurements: selectedMeasurements,
             timeRange: null,
@@ -217,7 +201,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Event listener for running a query from saved queries
     runQueryButton.addEventListener("click", async () => {
-        resetChartData();
+        chartManager.reset();
         const selectedOption = queryList.querySelector("li.selected");
         if (selectedOption) {
             const queryName = selectedOption.dataset.value;
@@ -275,97 +259,32 @@ document.addEventListener("DOMContentLoaded", () => {
         const selectedListItem = queryList.querySelector("li.selected");
         return selectedListItem ? selectedListItem.dataset.value : null;
     }
-    function resetChartData() {
-        // Clear all datasets (and labels if you're using them)
-        comparisonChart.data.datasets = [];
-        comparisonChart.data.labels = [];
-        // Immediately update the chart to reflect the changes
-        comparisonChart.update({ duration: 0 });
-    }
-    
+     
+    function processBatchData(dataArray) {
+        dataArray.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-
-    socket.onAny((event, args) => {
-        if (event.startsWith("dataUpdate_")) {
-            console.log(`Received event ${event}:`, args);
-            current_section_id = event.replace("dataUpdate_", "");
-            console.log(`Received ${args.length} records for ${current_section_id}`);
-            
-            if (current_section_id == section_id){
-                // Process as array regardless of input type
-                const dataArray = Array.isArray(args) ? args : [args];
-                
-                // Sort data by timestamp before processing
-                dataArray.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-                
-                // Batch processing with single chart update
-                dataArray.forEach(data => processChartData(data));
-                updateChartVisuals();
-            }
-        }
-    });
-
-    function binarySearch(arr, timestamp) {
-        let low = 0, high = arr.length;
-        while (low < high) {
-            const mid = (low + high) >>> 1;
-            if (arr[mid].x < timestamp) low = mid + 1;
-            else high = mid;
-        }
-        return arr[low]?.x === timestamp ? low : ~low;
-    }
-
-    function updateChartVisuals() {
-        comparisonChart.options.scales.x.time.unit = 'hour';
-        comparisonChart.update({
-            duration: 0,
-            lazy: true,
-            preservation: {
-                x: ['userPan', 'userZoom'] 
-            }
+        dataArray.forEach(data => {
+            if (!data.measurement) return;
+            chartManager.updateOrCreateChart(data.measurement, {
+                 x: new Date(data.timestamp), 
+                 y: data.value 
+                });
         });
     }
 
-
-    function processChartData(data) {
-        let dataset = comparisonChart.data.datasets.find(d => d.label === data.measurement);
-        
-        if (!dataset) {
-            dataset = {
-                label: data.measurement,
-                data: [],
-                borderColor: getRandomColor(),
-                fill: false,
-                lineTension: 0.1,
-                pointRadius: 2
-            };
-            comparisonChart.data.datasets.push(dataset);
-        }
-
-        const timestamp = new Date(data.timestamp);
-        console.log("Processing data:", { x: timestamp, y: data.value });
-
-        const index = binarySearch(dataset.data, timestamp);
-        
-        if (index <0) {
-            dataset.data.splice(~index, 0, { x: timestamp, y: data.value });
-            console.log("Dataset after insertion:", dataset.data);
+    socket.onAny((event, args) => {
+        if (event.startsWith("dataUpdate_")) {
+            console.log(`Received [Class influx socket] ${event}:`, args);
+            const current_section_id = event.replace("dataUpdate_", "");
+            console.log("current_section_id:", current_section_id);
             
-            if (dataset.data.length > 200) {
-                dataset.data.splice(0, dataset.data.length - 200);
-            }
+            if (current_section_id != section_id) return;
+
+            const dataArray = Array.isArray(args) ? args : [args];
+            processBatchData(dataArray);
+                
         }
-    }
-
-
-    function getRandomColor() {
-        return `rgb(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)})`;
-    }
-
-    function handleError(message, error) {
-        console.error(`${message}:`, error);
-        alert(message);
-    }
+    });
 
     fetchData();
     fetchSavedQueries();
