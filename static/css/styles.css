@@ -44,7 +44,6 @@ main {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
-    padding: 20px; /* Added padding */
     background-color: transparent;
     border-radius: 10px;
     text-align: center;
