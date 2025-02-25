@@ -6,59 +6,54 @@
     --text-color-yellow: #ffcc00;
     --button-color: #ffcc00;
     --button-hover-color: #ffcc66;
-    --border-color: #ffcc00; 
+    --border-color: #ffcc00;
 }
 
 body {
-    display: block;
-    background-color: var(--main-bg-color);
+    display: flex;
+    background-color: var(--general-bg-color);
     color: var(--text-color-white);
     font-family: Arial, Helvetica, sans-serif;
     margin: 0;
     padding: 0;
     flex-direction: column;
     cursor: default;
-
+    min-height: 100vh;
 }
 
-header, footer {
+header,
+footer {
     width: 100%;
-    padding: 0px 0px;
-    background-color: var(--main-bg-color);
+    padding: 10px 0; /* Added padding */
+    background-color: transparent;
     color: var(--text-color-yellow);
     text-align: center;
     font-size: 0.8rem;
 }
 
-/* Ensuring footer doesn't overlap content */
 footer {
     position: fixed;
     bottom: 0;
     z-index: 1000;
-    padding: 10px 0;
+    width: 100%; /* Ensure full width */
 }
 
 main {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
-    height: calc(100vh - 60px);
-    padding: 0px;
+    padding: 20px; /* Added padding */
     background-color: transparent;
     border-radius: 10px;
     text-align: center;
     color: var(--text-color-yellow);
     max-width: 1000px;
-    margin: 0px auto; /* Adjusted margin for footer space */
-    /* box-shadow: 0 0 10px rgba(255, 204, 0, 0.2); */
+    margin: 0 auto;
 }
 
-
-
-/* Headings */
 h3 {
     color: var(--text-color-yellow);
-    margin-bottom: 10px;
+    margin-bottom: 15px; /* Adjusted margin */
 }
 
 /* Form Styling */
@@ -69,66 +64,67 @@ h3 {
     gap: 20px;
     width: 100%;
     max-width: 900px;
-    margin: 0 auto;
+    margin: 20px auto; /* Adjusted margin */
 }
 
 .form-section {
-    width: 40%;
-    padding: 15px;
-    margin: 10px;
+    width: 45%; /* Adjusted width */
+    padding: 20px; /* Adjusted padding */
+    margin: 0; /* Removed margin */
     border: 1px solid var(--border-color);
     border-radius: 5px;
-    background-color: transparent;
+    background-color: var(--component-bg-color); /* Added background */
 }
 
-/* Labels */
 label {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 8px; /* Adjusted margin */
     color: var(--text-color-white);
 }
 
-/* Inputs */
-input, select, textarea {
-    width: 90%;
-    padding: 10px;
+input,
+select,
+textarea {
+    width: 95%;
+    padding: 12px; /* Adjusted padding */
     border: none;
     border-bottom: 1px solid var(--border-color);
     background-color: transparent;
     color: var(--text-color-white);
     outline: none;
-    margin-bottom: 10px;
+    margin-bottom: 15px; /* Adjusted margin */
 }
 
-/* Focus state for inputs */
-input:focus, select:focus, textarea:focus {
-    background-color: var(--main-bg-color);
+input:focus,
+select:focus,
+textarea:focus {
+    background-color: transparent;
     color: var(--text-color-white);
     border-bottom: 1px solid var(--border-color);
 }
 
-/* Autofill state */
-input:-webkit-autofill, textarea:-webkit-autofill {
+input:-webkit-autofill,
+textarea:-webkit-autofill {
     -webkit-box-shadow: 0 0 0px 1000px var(--main-bg-color) inset;
     -webkit-text-fill-color: var(--text-color-white);
     transition: background-color 5000s ease-in-out 0s;
 }
 
-/* Disabled inputs */
-input:disabled, select:disabled, textarea:disabled {
+input:disabled,
+select:disabled,
+textarea:disabled {
     opacity: 0.6;
     cursor: not-allowed;
 }
 
-/* Buttons */
 button {
     display: block;
     width: 95%;
-    margin: 0 auto;
+    margin: 15px auto; /* Adjusted margin */
     background-color: var(--button-color);
     color: var(--main-bg-color);
     border: none;
-    padding: 12px;
+    padding: 14px; /* Adjusted padding */
     border-radius: 5px;
     font-weight: bold;
     cursor: pointer;
@@ -140,19 +136,21 @@ button:hover {
     transform: scale(1.05);
 }
 
-/* Responsive Design */
 @media (max-width: 768px) {
     .form-container {
-        grid-template-columns: 1fr; /* One column on smaller screens */
+        flex-direction: column;
     }
-    
+
+    .form-section {
+        width: 100%;
+    }
+
     main {
         padding: 15px;
         margin: 20px auto 60px;
     }
-    
+
     button {
         width: 100%;
     }
 }
-

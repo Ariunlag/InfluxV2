@@ -118,7 +118,6 @@ export class ChartManager {
   }
 
   updateDataset(chart, measurement, dataPoint) {
-    console.log(`[char.js] Updating dataset for ${measurement} with:`, dataPoint);
     let dataset = chart.data.datasets.find(d => d.label === measurement);
     
     if (!dataset) {

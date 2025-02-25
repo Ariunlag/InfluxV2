@@ -17,7 +17,7 @@
             <li><a href="{{ url_for('dashboard', section='influx-mqtt') }}">Real time dashboard</a></li>
         </ul>
         <form method="POST" action="{{ url_for('logout') }}" class="logout-form">
-            <button type="submit">Logout</button>
+            <button id='logout' type="submit">Logout</button>
         </form>
     </nav>
 
@@ -68,7 +68,7 @@
         <!-- InfluxDB Section -->
         {% if section == 'influx' %}
         <div class="section" data-section="aggrigate-influx">
-            <h3>Influx Data</h3>
+            <h3>Aggrigated data</h3>
             <form id="queryForm">
                 <label>Select Measurement</label>
                 <select id="measurement"></select> 
@@ -128,9 +128,8 @@
                 </div>
             </div>
 
-            <h4>Save Query</h4>
             <form id="save-query-form">
-                <label for="query-name">Query Name:</label>
+                <label for="query-name">Please enter a name to save your query:</label>
                 <input type="text" id="query-name" name="query-name" required>
                 <button type="button" id="save-query-button">Save Query</button>
             </form>

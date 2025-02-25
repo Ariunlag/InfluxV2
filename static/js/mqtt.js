@@ -108,7 +108,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Handle incoming MQTT data
     socket.on('mqtt_data', (data) => {
-        console.log('Received data:', data);
         if (mqttDataDisplay) {
             data.data.forEach((item) => {
                 if (item) {
