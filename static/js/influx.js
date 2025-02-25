@@ -94,6 +94,8 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    
+
     socket.onAny((event, args) => {
         if (event.startsWith("dataUpdate_")) {
             const current_section_id = event.replace("dataUpdate_", "");

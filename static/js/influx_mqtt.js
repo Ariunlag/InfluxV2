@@ -102,35 +102,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Modified Socket Handler
     socket.on("mqtt_data", (payload) => {
-        if (!mqttEnabled) return;
-        
         payload.data.forEach(item => {
-            if (activeMeasurements.has(item.topic)) {
-                // Extract the timestamp
-                const timestamp = item.fields.timestamp;
-                console.log("MQTT Timestamp (raw):", item.fields.timestamp); // e.g., "2025-02-24T15:37:24Z"
-                // const utcTimestamp = new Date(item.fields.timestamp).getTime();
-                // console.log("MQTT Timestamp (converted):", utcTimestamp); // Correct UTC milliseconds
-                
-            // Extract the second dynamic field (excluding 'timestamp')
-            let value;
-            for (let key in item.fields) {
-                if (key !== 'timestamp') {
-                    value = item.fields[key];
-                    break; // Stop after finding the first non-timestamp field
-                }
-            }
-            
+          // Check if the measurement is one we're interested in
+          if (activeMeasurements.has(item.measurement)) {
+            // Convert the timestamp to a Date object
+            const timestamp = new Date(item.timestamp);
+            console.log("MQTT Timestamp (raw):", item.timestamp);
+            console.log("MQTT Timestamp (converted):", timestamp.toLocaleString());
+      
+            // Create the data point for Chart.js
             const dataPoint = {
-                x: timestamp,
-                y: value
+              x: timestamp,
+              y: item.value
             };
-            
-            chartManager.updateOrCreateChart(item.topic, dataPoint);
-            console.log(`Chart updated data ${item.topic}`, dataPoint);
-            }
+      
+            // Update the chart using the measurement as identifier
+            chartManager.updateOrCreateChart(item.measurement, dataPoint);
+          }
         });
-    });
+      });
+      
+      
 
     fetchSavedQueries();
 });

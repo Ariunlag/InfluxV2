@@ -114,41 +114,30 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (item) {
                     const li = document.createElement('li');
     
-                    // Extract timestamp and value dynamically
-                    const timestamp = item.fields.timestamp;
-                    let value;
-                    let fieldName;
+                    // Extract properties directly from the item
+                    const timestamp = item.timestamp;
+                    const value = item.value;
+                    const measurement = item.measurement;
+                    const formattedTime = new Date(timestamp).toLocaleString();
     
-    
-                    for (const field in item.fields) {
-                        if (field !== "timestamp") {
-                            value = item.fields[field];
-                            fieldName = field;
-                            break; // Exit loop after finding the value
-                        }
-                    }
-    
-                    if (value !== undefined && fieldName) { // Check if value and fieldName are found
-                        li.innerHTML = `
-                            <strong>Topic:</strong> ${item.topic} &emsp;
-                            <strong>Value:</strong> ${value}&emsp;
-                            <strong>Time:</strong> ${timestamp}
-                        `;
-                        li.className = 'mqtt-item';
-                        mqttDataDisplay.insertBefore(li, mqttDataDisplay.firstChild || null);
-                    } else {
-                        console.log("No value field found in item:", item);
-                    }
+                    li.innerHTML = `
+                        <strong>Measurement:</strong> ${measurement} &emsp;
+                        <strong>Value:</strong> ${value} &emsp;
+                        <strong>Time:</strong> ${formattedTime}
+                    `;
+                    li.className = 'mqtt-item';
+                    mqttDataDisplay.insertBefore(li, mqttDataDisplay.firstChild || null);
                 }
             });
         } else {
             console.error('Element with id "mqtt-data-display" not found');
         }
     });
-
+    
     // Handle Socket.IO errors
     socket.on('connect_error', (error) => {
         console.error('Socket.IO connection error:', error);
     });
+    
 });
 

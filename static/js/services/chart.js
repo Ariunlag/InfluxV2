@@ -24,7 +24,7 @@ export class ChartManager {
           x: {
             type: 'time',
             time: {
-              tooltipFormat: 'YYYY-MM-DD HH:mm:ss',
+              tooltipFormat: 'MM-dd HH:mm:ss',
               displayFormats: {
                 hour: 'HH:mm',
                 minute: 'HH:mm:ss'
@@ -61,36 +61,40 @@ export class ChartManager {
   
   
 
-  // updateOrCreateChart(measurement, dataPoint) {
-  //   // Update combined chart
-  //   if (this.charts.size === 0) {
-  //     this.updateDataset(this.combinedChart, measurement, dataPoint);
-  //     return; // Prevents creating an unnecessary individual chart
-  //   }
-    
-  //   // Handle individual chart
-  //   if (!this.charts.has(measurement)) {
-  //     this.createIndividualChart(measurement);
-  //   }
-  //   this.updateDataset(this.charts.get(measurement), measurement, dataPoint);
-  // }
-
-
-
   updateOrCreateChart(measurement, dataPoint) {
     // Handle individual chart
-    console.log('[Size of chart size]',this.charts.size);
     if (!this.charts.has(measurement)) {
       this.createIndividualChart(measurement);
     }
     this.updateDataset(this.charts.get(measurement), measurement, dataPoint);
-
-    // Only show the combined chart if there are multiple measurements
+  
+    // Update combined chart only if more than one measurement exists
     if (this.charts.size > 1) {
       this.updateDataset(this.combinedChart, measurement, dataPoint);
       this.combinedChart.canvas.style.display = 'block'; // Show the combined chart
+    } else {
+      // Hide the combined chart when only one measurement is present
+      this.combinedChart.canvas.style.display = 'none';
     }
   }
+  
+
+
+
+  // updateOrCreateChart(measurement, dataPoint) {
+  //   // Handle individual chart
+  //   console.log('[Size of chart size]',this.charts.size);
+  //   if (!this.charts.has(measurement)) {
+  //     this.createIndividualChart(measurement);
+  //   }
+  //   this.updateDataset(this.charts.get(measurement), measurement, dataPoint);
+
+  //   // Only show the combined chart if there are multiple measurements
+  //   if (this.charts.size > 1) {
+  //     this.updateDataset(this.combinedChart, measurement, dataPoint);
+  //     this.combinedChart.canvas.style.display = 'block'; // Show the combined chart
+  //   }
+  // }
 
   createIndividualChart(measurement) {
     const canvas = document.createElement('canvas');
@@ -114,6 +118,7 @@ export class ChartManager {
   }
 
   updateDataset(chart, measurement, dataPoint) {
+    console.log(`[char.js] Updating dataset for ${measurement} with:`, dataPoint);
     let dataset = chart.data.datasets.find(d => d.label === measurement);
     
     if (!dataset) {

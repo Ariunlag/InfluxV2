@@ -3,7 +3,7 @@ import socket
 import json
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 class MQTTClient:
     def __init__(self, broker, port, influx_client=None, bucket=None, socketio=None):
@@ -32,6 +32,7 @@ class MQTTClient:
             self.client.on_message = self.on_message
             self.client.loop_start()
             self.connected = True
+            self.subscribed_topics.clear()
             print(f"Connected to {self.broker}:{self.port}")
             return True
         except Exception as e:
@@ -61,50 +62,54 @@ class MQTTClient:
 
 
 
+
+
     def on_message(self, client, userdata, msg):
         payload = msg.payload.decode()
 
         try:
             data = json.loads(payload)
-
             fields = data.get("fields", {})
             tags = data.get("tags", {})
             timestamp_unix = fields.get("timestamp")
 
+            # Convert Unix timestamp to a UTC ISO 8601 string
             if timestamp_unix is not None:
-                timestamp_datetime = datetime.fromtimestamp(timestamp_unix)
-                timestamp_str = timestamp_datetime.isoformat()
+                timestamp_datetime = datetime.utcfromtimestamp(timestamp_unix).replace(tzinfo=timezone.utc)
+                timestamp_str = timestamp_datetime.isoformat()  # e.g., "2025-02-25T03:55:00+00:00"
             else:
-                timestamp_str = time.strftime("%Y-%m-%dT%H:%M:%SZ")
+                # Fallback to current UTC time if no timestamp is provided
+                timestamp_str = datetime.now(timezone.utc).isoformat()
 
-            # Dynamically get the field name and value
-            for field_name, field_value in fields.items(): # Iterate over the fields
-                if field_name != "timestamp": 
+            # Dynamically get the first non-timestamp field as the value
+            for field_name, field_value in fields.items():
+                if field_name != "timestamp":
                     new_data_point = {
-                        "topic": msg.topic,
-                        "fields": {
-                            "timestamp": timestamp_str,
-                            field_name: field_value # Use the dynamic field name
-                        },
-                        "tags": tags
+                        "timestamp": timestamp_str,
+                        "value": field_value,
+                        "measurement": msg.topic
                     }
 
+                    # Emit the data in the desired format
                     if self.socketio:
                         self.socketio.emit('mqtt_data', {'data': [new_data_point]})
 
+                    # Write to InfluxDB using the original dynamic field
                     if self.influx_client and self.bucket:
                         measurement = msg.topic
                         self.influx_client.write_data(
                             bucket=self.bucket,
                             measurement=measurement,
                             tags=tags,
-                            fields={ field_name: field_value } # Use the dynamic field name for InfluxDB
+                            fields={field_name: field_value}
                         )
+                    break  # Only process the first non-timestamp field
 
         except json.JSONDecodeError:
             print(f"Failed to decode JSON: {payload}")
         except Exception as e:
             print(f"Error processing message payload: {e}")
+
 
 
 
